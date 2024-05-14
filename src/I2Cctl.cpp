@@ -1,7 +1,17 @@
 #include "I2Cctl.h"
 
+/**
+ * @brief Constructor for the I2CCtl class.
+ *
+ * Initializes the SDA pin, SCL pin, and frequency to default values.
+ */
 I2CCtl::I2CCtl() : _sdaPin(0), _sclPin(0), _frequency(100000) {}
 
+/**
+ * @brief Initializes I2C communication with the provided parameters.
+ *
+ * @param params A vector of pairs containing parameter names and values.
+ */
 void I2CCtl::init(const std::vector<std::pair<std::string, std::string>> &params)
 {
     for (const auto &param : params)
@@ -24,11 +34,21 @@ void I2CCtl::init(const std::vector<std::pair<std::string, std::string>> &params
     setClock(_frequency);
 }
 
+/**
+ * @brief Deinitializes I2C communication.
+ */
 void I2CCtl::deinit()
 {
     Wire.end();
 }
 
+/**
+ * @brief Executes a command with the provided parameters.
+ *
+ * @param command The command to execute.
+ * @param params A vector of pairs containing parameter names and values.
+ * @return A pair containing the return type and a pointer to the result.
+ */
 std::pair<std::string, void *> I2CCtl::execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params)
 {
     if (command == "setClock")
@@ -133,6 +153,11 @@ std::pair<std::string, void *> I2CCtl::execute(const std::string &command, const
     return {"", nullptr};
 }
 
+/**
+ * @brief Returns a vector of supported functions and their parameter information.
+ *
+ * @return A vector of FunctionInfo structs.
+ */
 std::vector<FunctionInfo> I2CCtl::getSupportedFunctions()
 {
     return {
@@ -145,39 +170,80 @@ std::vector<FunctionInfo> I2CCtl::getSupportedFunctions()
         {"read", {{"quantity", "size_t"}}}};
 }
 
+/**
+ * @brief Sets the I2C clock frequency.
+ *
+ * @param frequency The clock frequency to set.
+ */
 void I2CCtl::setClock(uint32_t frequency)
 {
     _frequency = frequency;
     Wire.setClock(_frequency);
 }
 
+/**
+ * @brief Begins an I2C transmission to the specified address.
+ *
+ * @param address The I2C slave address.
+ */
 void I2CCtl::beginTransmission(uint8_t address)
 {
     Wire.beginTransmission(address);
 }
 
+/**
+ * @brief Ends the current I2C transmission.
+ *
+ * @param stopBit Whether to send a stop bit (true) or not (false).
+ * @return A pointer to the transmission status.
+ */
 uint8_t *I2CCtl::endTransmission(bool stopBit)
 {
     uint8_t *result = new uint8_t(Wire.endTransmission(stopBit));
     return result;
 }
 
+/**
+ * @brief Requests data from the specified I2C slave address.
+ *
+ * @param address The I2C slave address.
+ * @param quantity The number of bytes to request.
+ * @param stopBit Whether to send a stop bit (true) or not (false).
+ * @return A pointer to the number of bytes received.
+ */
 uint8_t *I2CCtl::requestFrom(uint8_t address, uint8_t quantity, bool stopBit)
 {
     uint8_t *result = new uint8_t(Wire.requestFrom(address, quantity, stopBit));
     return result;
 }
 
+/**
+ * @brief Writes a byte of data to the I2C bus.
+ *
+ * @param data The byte to write.
+ */
 void I2CCtl::write(uint8_t data)
 {
     Wire.write(data);
 }
 
+/**
+ * @brief Writes multiple bytes of data to the I2C bus.
+ *
+ * @param data A pointer to the data to write.
+ * @param quantity The number of bytes to write.
+ */
 void I2CCtl::write(const uint8_t *data, size_t quantity)
 {
     Wire.write(data, quantity);
 }
 
+/**
+ * @brief Reads multiple bytes of data from the I2C bus.
+ *
+ * @param quantity The number of bytes to read.
+ * @return A pointer to the read data.
+ */
 uint8_t *I2CCtl::read(size_t quantity)
 {
     uint8_t *data = new uint8_t[quantity];
