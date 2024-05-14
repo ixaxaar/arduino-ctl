@@ -1,18 +1,21 @@
+
 #ifndef I2S_H
 #define I2S_H
 
 #include <Arduino.h>
 #include <driver/i2s.h>
+#include <vector>
+#include <string>
+#include "module.h"
 
-class I2SCtl
+class I2SCtl : public ModuleInterface
 {
 public:
-    I2SCtl(i2s_port_t i2sPort = I2S_NUM_0, const i2s_config_t *i2sConfig = &defconf);
-    void begin();
-    void end();
-    void write(const uint8_t *data, size_t size);
-    void read(uint8_t *data, size_t size);
-    void setBufferSize(size_t bufferSize);
+    I2SCtl();
+    void init(const std::vector<std::pair<std::string, std::string>> &params) override;
+    void deinit() override;
+    std::pair<std::string, void *> execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params) override;
+    std::vector<FunctionInfo> getSupportedFunctions() override;
 
 private:
     i2s_port_t _i2sPort;
@@ -20,6 +23,10 @@ private:
     size_t _bufferSize;
 
     static const i2s_config_t defconf;
+
+    void write(const uint8_t *data, size_t size);
+    uint8_t *read(size_t size);
+    void setBufferSize(size_t bufferSize);
 };
 
 #endif // I2S_H
