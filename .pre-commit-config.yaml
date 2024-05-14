@@ -13,10 +13,10 @@ repos:
         args:
           [
             --license-filepath=assets/header.txt,
-            "--comment-style=#",
+            "--comment-style=//",
             --detect-license-in-X-top-lines=2,
           ]
-        types_or: [python, makefile, dockerfile]
+        types_or: [c,c++]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
