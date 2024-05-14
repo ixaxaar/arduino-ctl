@@ -1,8 +1,17 @@
-
 #include "SPIctl.h"
 
+/**
+ * @brief Constructor for the SPICtl class.
+ *
+ * Initializes the SPI pins to default values.
+ */
 SPICtl::SPICtl() : _sckPin(SCK), _misoPin(MISO), _mosiPin(MOSI), _ssPin(SS) {}
 
+/**
+ * @brief Initializes SPI communication with the provided parameters.
+ *
+ * @param params A vector of pairs containing parameter names and values.
+ */
 void SPICtl::init(const std::vector<std::pair<std::string, std::string>> &params)
 {
     for (const auto &param : params)
@@ -28,11 +37,21 @@ void SPICtl::init(const std::vector<std::pair<std::string, std::string>> &params
     SPI.begin(_sckPin, _misoPin, _mosiPin, _ssPin);
 }
 
+/**
+ * @brief Deinitializes SPI communication.
+ */
 void SPICtl::deinit()
 {
     SPI.end();
 }
 
+/**
+ * @brief Executes a command with the provided parameters.
+ *
+ * @param command The command to execute.
+ * @param params A vector of pairs containing parameter names and values.
+ * @return A pair containing the return type and a pointer to the result.
+ */
 std::pair<std::string, void *> SPICtl::execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params)
 {
     if (command == "beginTransaction")
@@ -144,6 +163,11 @@ std::pair<std::string, void *> SPICtl::execute(const std::string &command, const
     return {"", nullptr};
 }
 
+/**
+ * @brief Returns a vector of supported functions and their parameter information.
+ *
+ * @return A vector of FunctionInfo structs.
+ */
 std::vector<FunctionInfo> SPICtl::getSupportedFunctions()
 {
     return {
@@ -156,36 +180,73 @@ std::vector<FunctionInfo> SPICtl::getSupportedFunctions()
         {"setClockDivider", {{"clockDiv", "uint8_t"}}}};
 }
 
+/**
+ * @brief Begins an SPI transaction with the specified settings.
+ *
+ * @param clock The SPI clock speed.
+ * @param bitOrder The bit order (MSBFIRST or LSBFIRST).
+ * @param dataMode The SPI data mode (SPI_MODE0, SPI_MODE1, SPI_MODE2, or SPI_MODE3).
+ */
 void SPICtl::beginTransaction(uint32_t clock, uint8_t bitOrder, uint8_t dataMode)
 {
     SPI.beginTransaction(SPISettings(clock, bitOrder, dataMode));
 }
 
+/**
+ * @brief Ends the current SPI transaction.
+ */
 void SPICtl::endTransaction()
 {
     SPI.endTransaction();
 }
 
+/**
+ * @brief Transfers a byte of data over SPI.
+ *
+ * @param data The byte to transfer.
+ * @return The received byte.
+ */
 uint8_t SPICtl::transfer(uint8_t data)
 {
     return SPI.transfer(data);
 }
 
+/**
+ * @brief Transfers multiple bytes of data over SPI.
+ *
+ * @param data A pointer to the data to transfer.
+ * @param size The size of the data in bytes.
+ */
 void SPICtl::transferBytes(uint8_t *data, size_t size)
 {
     SPI.transferBytes(data, data, size);
 }
 
+/**
+ * @brief Sets the SPI data mode.
+ *
+ * @param dataMode The data mode to set (SPI_MODE0, SPI_MODE1, SPI_MODE2, or SPI_MODE3).
+ */
 void SPICtl::setDataMode(uint8_t dataMode)
 {
     SPI.setDataMode(dataMode);
 }
 
+/**
+ * @brief Sets the SPI bit order.
+ *
+ * @param bitOrder The bit order to set (MSBFIRST or LSBFIRST).
+ */
 void SPICtl::setBitOrder(uint8_t bitOrder)
 {
     SPI.setBitOrder(bitOrder);
 }
 
+/**
+ * @brief Sets the SPI clock divider.
+ *
+ * @param clockDiv The clock divider to set.
+ */
 void SPICtl::setClockDivider(uint8_t clockDiv)
 {
     SPI.setClockDivider(clockDiv);

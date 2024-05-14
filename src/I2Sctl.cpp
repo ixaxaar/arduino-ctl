@@ -1,6 +1,8 @@
-
 #include "I2Sctl.h"
 
+/**
+ * @brief Default I2S configuration.
+ */
 const i2s_config_t I2SCtl::defconf = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),
     .sample_rate = 44100,
@@ -12,8 +14,18 @@ const i2s_config_t I2SCtl::defconf = {
     .dma_buf_len = 64,
     .use_apll = false};
 
+/**
+ * @brief Constructor for the I2SCtl class.
+ *
+ * Initializes the I2S port, configuration, and buffer size to default values.
+ */
 I2SCtl::I2SCtl() : _i2sPort(I2S_NUM_0), _i2sConfig(defconf), _bufferSize(defconf.dma_buf_len) {}
 
+/**
+ * @brief Initializes I2S communication with the provided parameters.
+ *
+ * @param params A vector of pairs containing parameter names and values.
+ */
 void I2SCtl::init(const std::vector<std::pair<std::string, std::string>> &params)
 {
     for (const auto &param : params)
@@ -56,11 +68,21 @@ void I2SCtl::init(const std::vector<std::pair<std::string, std::string>> &params
     i2s_driver_install(_i2sPort, &_i2sConfig, 0, NULL);
 }
 
+/**
+ * @brief Deinitializes I2S communication.
+ */
 void I2SCtl::deinit()
 {
     i2s_driver_uninstall(_i2sPort);
 }
 
+/**
+ * @brief Executes a command with the provided parameters.
+ *
+ * @param command The command to execute.
+ * @param params A vector of pairs containing parameter names and values.
+ * @return A pair containing the return type and a pointer to the result.
+ */
 std::pair<std::string, void *> I2SCtl::execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params)
 {
     if (command == "write")
@@ -116,6 +138,11 @@ std::pair<std::string, void *> I2SCtl::execute(const std::string &command, const
     return {"", nullptr};
 }
 
+/**
+ * @brief Returns a vector of supported functions and their parameter information.
+ *
+ * @return A vector of FunctionInfo structs.
+ */
 std::vector<FunctionInfo> I2SCtl::getSupportedFunctions()
 {
     return {
@@ -124,12 +151,24 @@ std::vector<FunctionInfo> I2SCtl::getSupportedFunctions()
         {"setBufferSize", {{"bufferSize", "size_t"}}}};
 }
 
+/**
+ * @brief Writes data to the I2S bus.
+ *
+ * @param data A pointer to the data to write.
+ * @param size The size of the data in bytes.
+ */
 void I2SCtl::write(const uint8_t *data, size_t size)
 {
     size_t bytesWritten;
     i2s_write(_i2sPort, data, size, &bytesWritten, portMAX_DELAY);
 }
 
+/**
+ * @brief Reads data from the I2S bus.
+ *
+ * @param size The size of the data to read in bytes.
+ * @return A pointer to the read data.
+ */
 uint8_t *I2SCtl::read(size_t size)
 {
     uint8_t *data = new uint8_t[size];
@@ -138,6 +177,11 @@ uint8_t *I2SCtl::read(size_t size)
     return data;
 }
 
+/**
+ * @brief Sets the buffer size for I2S communication.
+ *
+ * @param bufferSize The buffer size to set.
+ */
 void I2SCtl::setBufferSize(size_t bufferSize)
 {
     _bufferSize = bufferSize;
