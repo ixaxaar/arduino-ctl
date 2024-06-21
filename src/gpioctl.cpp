@@ -1,33 +1,8 @@
-// ⚡🔌 Arduino-CTL 🔌⚡
-//
-// Copyright (C) 2024 ixaxaar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "gpioctl.h"
+#include <sstream>
 
-/**
- * @brief Constructor for the GPIOCtl class.
- *
- * Initializes the GPIO pin and mode to default values.
- */
-GPIOCtl::GPIOCtl() : _pin(0), _mode(0) {}
+GPIOCtl::GPIOCtl() : _pin(0), _mode(INPUT) {}
 
-/**
- * @brief Initializes the GPIO pin with the provided parameters.
- *
- * @param params A vector of pairs containing parameter names and values.
- */
 void GPIOCtl::init(const std::vector<std::pair<std::string, std::string>> &params)
 {
     for (const auto &param : params)
@@ -41,32 +16,19 @@ void GPIOCtl::init(const std::vector<std::pair<std::string, std::string>> &param
             _mode = std::stoi(param.second);
         }
     }
-
-    pinMode(_mode);
+    pinMode(_pin, _mode);
 }
 
-/**
- * @brief Deinitializes the GPIO pin.
- *
- * No specific deinitialization required for GPIO.
- */
 void GPIOCtl::deinit()
 {
-    // No specific deinitialization required for GPIO
+    // No specific deinitialization needed for GPIO pins
 }
 
-/**
- * @brief Executes a command with the provided parameters.
- *
- * @param command The command to execute.
- * @param params A vector of pairs containing parameter names and values.
- * @return A pair containing the return type and a pointer to the result.
- */
 std::pair<std::string, void *> GPIOCtl::execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params)
 {
-    if (command == "pinMode")
+    if (command == "setPinMode")
     {
-        int mode = 0;
+        int mode = INPUT;
         for (const auto &param : params)
         {
             if (param.first == "mode")
@@ -75,117 +37,75 @@ std::pair<std::string, void *> GPIOCtl::execute(const std::string &command, cons
                 break;
             }
         }
-        pinMode(mode);
-        return {"", nullptr};
-    }
-    else if (command == "digitalWrite")
-    {
-        int value = 0;
-        for (const auto &param : params)
-        {
-            if (param.first == "value")
-            {
-                value = std::stoi(param.second);
-                break;
-            }
-        }
-        digitalWrite(value);
+        setPinMode(mode);
         return {"", nullptr};
     }
     else if (command == "digitalRead")
     {
-        int *value = digitalRead();
-        return {"int", static_cast<void *>(value)};
-    }
-    else if (command == "attachInterrupt")
-    {
-        void (*callback)(void) = nullptr;
-        int mode = 0;
+        int numSamples = 1;
         for (const auto &param : params)
         {
-            if (param.first == "callback")
+            if (param.first == "numSamples")
             {
-                // Assuming the callback is passed as a function pointer
-                callback = reinterpret_cast<void (*)(void)>(std::stoul(param.second, nullptr, 16));
-            }
-            else if (param.first == "mode")
-            {
-                mode = std::stoi(param.second);
+                numSamples = std::stoi(param.second);
+                break;
             }
         }
-        attachInterrupt(callback, mode);
-        return {"", nullptr};
+        std::vector<int> result = digitalRead(numSamples);
+        return {"std::vector<int>", new std::vector<int>(result)};
     }
-    else if (command == "detachInterrupt")
+    else if (command == "digitalWrite")
     {
-        detachInterrupt();
+        std::vector<int> values;
+        for (const auto &param : params)
+        {
+            if (param.first == "values")
+            {
+                std::istringstream iss(param.second);
+                std::string token;
+                while (std::getline(iss, token, ','))
+                {
+                    values.push_back(std::stoi(token));
+                }
+                break;
+            }
+        }
+        digitalWrite(values);
         return {"", nullptr};
     }
     return {"", nullptr};
 }
 
-/**
- * @brief Returns a vector of supported functions and their parameter information.
- *
- * @return A vector of FunctionInfo structs.
- */
 std::vector<FunctionInfo> GPIOCtl::getSupportedFunctions()
 {
     return {
-        {"pinMode", {{"mode", "int"}}},
-        {"digitalWrite", {{"value", "int"}}},
-        {"digitalRead", {}},
-        {"attachInterrupt", {{"callback", "void (*)(void)"}, {"mode", "int"}}},
-        {"detachInterrupt", {}}};
+        {"setPinMode", {{"mode", "int"}}},
+        {"digitalRead", {{"numSamples", "int"}}},
+        {"digitalWrite", {{"values", "std::vector<int>"}}}};
 }
 
-/**
- * @brief Sets the mode of the GPIO pin.
- *
- * @param mode The pin mode to set.
- */
-void GPIOCtl::pinMode(int mode)
+void GPIOCtl::setPinMode(int mode)
 {
     _mode = mode;
-    ::pinMode(_pin, _mode);
+    pinMode(_pin, _mode);
 }
 
-/**
- * @brief Writes a digital value to the GPIO pin.
- *
- * @param value The digital value to write.
- */
-void GPIOCtl::digitalWrite(int value)
+std::vector<int> GPIOCtl::digitalRead(int numSamples)
 {
-    ::digitalWrite(_pin, value);
+    std::vector<int> samples;
+    for (int i = 0; i < numSamples; ++i)
+    {
+        samples.push_back(::digitalRead(_pin));
+        delay(1); // Short delay between readings
+    }
+    return samples;
 }
 
-/**
- * @brief Reads a digital value from the GPIO pin.
- *
- * @return A pointer to the read digital value.
- */
-int *GPIOCtl::digitalRead()
+void GPIOCtl::digitalWrite(const std::vector<int> &values)
 {
-    int *value = new int(::digitalRead(_pin));
-    return value;
-}
-
-/**
- * @brief Attaches an interrupt to the GPIO pin.
- *
- * @param callback The interrupt callback function.
- * @param mode The interrupt mode.
- */
-void GPIOCtl::attachInterrupt(void (*callback)(void), int mode)
-{
-    ::attachInterrupt(_pin, callback, mode);
-}
-
-/**
- * @brief Detaches the interrupt from the GPIO pin.
- */
-void GPIOCtl::detachInterrupt()
-{
-    ::detachInterrupt(_pin);
+    for (int value : values)
+    {
+        ::digitalWrite(_pin, value);
+        delay(1); // Short delay between writes
+    }
 }
