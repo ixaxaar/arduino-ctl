@@ -17,19 +17,23 @@
 #ifndef MODULE_H
 #define MODULE_H
 
+#include <Arduino.h>
+#include <vector>
+
 struct FunctionInfo
 {
-    std::string name;
-    std::vector<std::pair<std::string, std::string>> params;
+    String name;
+    std::vector<std::pair<String, String>> params;
 };
 
 class ModuleInterface
 {
 public:
-    virtual void init(const std::vector<std::pair<std::string, std::string>> &params) = 0;
+    virtual void init(const std::vector<std::pair<String, String>> &params) = 0;
     virtual void deinit() = 0;
-    virtual std::pair<std::string, void *> execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params) = 0;
+    virtual std::pair<String, void *> execute(const String &command, const std::vector<std::pair<String, String>> &params) = 0;
     virtual std::vector<FunctionInfo> getSupportedFunctions() = 0;
+    virtual ~ModuleInterface() {}
 };
 
-#endif
+#endif // MODULE_H
