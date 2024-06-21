@@ -13,3 +13,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// main.h
+
+#ifndef MAIN_H
+#define MAIN_H
+
+#include <Arduino.h>
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include "module.h"
+
+class RemoteControlServer
+{
+public:
+    RemoteControlServer();
+    void registerModule(const String &name, std::shared_ptr<ModuleInterface> module);
+    String executeCommands(const String &jsonCommands);
+
+private:
+    std::unordered_map<String, std::shared_ptr<ModuleInterface>> modules;
+    String executeCommand(const String &moduleName, const String &command, const std::vector<std::pair<String, String>> &params);
+};
+
+#endif // MAIN_H

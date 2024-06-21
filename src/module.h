@@ -14,6 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef MODULE_H
+#define MODULE_H
+
 struct FunctionInfo
 {
     std::string name;
@@ -28,3 +31,5 @@ public:
     virtual std::pair<std::string, void *> execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params) = 0;
     virtual std::vector<FunctionInfo> getSupportedFunctions() = 0;
 };
+
+#endif
