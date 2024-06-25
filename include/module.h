@@ -27,8 +27,8 @@
  */
 struct FunctionInfo
 {
-    String name;                                   ///< Name of the function
-    std::vector<std::pair<String, String>> params; ///< Vector of parameter name-type pairs
+    std::string name;                                        ///< Name of the function
+    std::vector<std::pair<std::string, std::string>> params; ///< Vector of parameter name-type pairs
 };
 
 /**

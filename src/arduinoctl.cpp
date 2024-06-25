@@ -15,20 +15,30 @@
 // limitations under the License.
 
 #include "arduinoctl.h"
-
-const char *ssid = "YourWiFiSSID";
-const char *password = "YourWiFiPassword";
+#include <algorithm>
 
 AsyncWebServer server(80);
 RemoteControlServer remoteServer;
+
+// Helper function to convert Arduino String to std::string
+std::string to_std_string(const String &arduino_string)
+{
+    return std::string(arduino_string.c_str(), arduino_string.length());
+}
+
+// Helper function to convert std::string to Arduino String
+String to_arduino_string(const std::string &std_string)
+{
+    return String(std_string.c_str());
+}
 
 void handleExecute(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
 {
     if (len > 0)
     {
-        String json = String((char *)data);
-        String result = remoteServer.executeCommands(json);
-        request->send(200, "application/json", result);
+        std::string json(reinterpret_cast<char *>(data), len);
+        std::string result = remoteServer.executeCommands(json);
+        request->send(200, "application/json", to_arduino_string(result));
     }
     else
     {
@@ -38,12 +48,52 @@ void handleExecute(AsyncWebServerRequest *request, uint8_t *data, size_t len, si
 
 RemoteControlServer::RemoteControlServer() {}
 
-void RemoteControlServer::registerModule(const String &name, std::shared_ptr<ModuleInterface> module)
+bool RemoteControlServer::begin()
+{
+    if (!configCtl.loadConfig())
+    {
+        Serial.println("Failed to load configuration. Using default values.");
+        configCtl.setWifiSsid("DefaultSSID");
+        configCtl.setWifiPassword("DefaultPassword");
+        configCtl.setApiKey("DefaultAPIKey");
+        configCtl.saveConfig();
+    }
+
+    // Connect to Wi-Fi
+    WiFi.begin(configCtl.getWifiSsid().c_str(), configCtl.getWifiPassword().c_str());
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20)
+    {
+        delay(1000);
+        Serial.println("Connecting to WiFi...");
+        attempts++;
+    }
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("Failed to connect to WiFi");
+        return false;
+    }
+
+    Serial.println("Connected to WiFi");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    // Set up web server
+    server.on("/execute", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, handleExecute);
+
+    server.begin();
+    Serial.println("HTTP server started");
+
+    return true;
+}
+
+void RemoteControlServer::registerModule(const std::string &name, std::shared_ptr<ModuleInterface> module)
 {
     modules.push_back(std::make_pair(name, module));
 }
 
-String RemoteControlServer::executeCommands(const String &jsonCommands)
+std::string RemoteControlServer::executeCommands(const std::string &jsonCommands)
 {
     DynamicJsonDocument doc(1024);
     DeserializationError error = deserializeJson(doc, jsonCommands);
@@ -53,46 +103,52 @@ String RemoteControlServer::executeCommands(const String &jsonCommands)
         return "{\"error\": \"Failed to parse JSON\"}";
     }
 
+    // Check API key
+    if (doc["api_key"] != configCtl.getApiKey())
+    {
+        return "{\"error\": \"Invalid API key\"}";
+    }
+
     JsonArray commands = doc["commands"];
     DynamicJsonDocument resultDoc(1024);
     JsonArray results = resultDoc.createNestedArray("results");
 
     for (JsonObject command : commands)
     {
-        String moduleName = command["module"];
-        String commandName = command["command"];
+        std::string moduleName = command["module"].as<std::string>();
+        std::string commandName = command["command"].as<std::string>();
         JsonObject params = command["params"];
 
-        std::vector<std::pair<String, String>> paramPairs;
+        std::vector<std::pair<std::string, std::string>> paramPairs;
         for (JsonPair p : params)
         {
-            paramPairs.emplace_back(p.key().c_str(), p.value().as<String>());
+            paramPairs.emplace_back(p.key().c_str(), p.value().as<std::string>());
         }
 
-        String result = executeCommand(moduleName, commandName, paramPairs);
+        std::string result = executeCommand(moduleName, commandName, paramPairs);
         results.add(serialized(result));
     }
 
-    String response;
+    std::string response;
     serializeJson(resultDoc, response);
     return response;
 }
 
-String RemoteControlServer::executeCommand(const String &moduleName, const String &command, const std::vector<std::pair<String, String>> &params)
+std::string RemoteControlServer::executeCommand(const std::string &moduleName, const std::string &command, const std::vector<std::pair<std::string, std::string>> &params)
 {
     for (const auto &module : modules)
     {
         if (module.first == moduleName)
         {
-            std::pair<String, void *> result = module.second->execute(command, params);
+            std::pair<std::string, void *> result = module.second->execute(command, params);
 
             if (result.first == "std::vector<int>")
             {
                 std::vector<int> *data = static_cast<std::vector<int> *>(result.second);
-                String jsonResult = "[";
+                std::string jsonResult = "[";
                 for (size_t i = 0; i < data->size(); ++i)
                 {
-                    jsonResult += String((*data)[i]);
+                    jsonResult += std::to_string((*data)[i]);
                     if (i < data->size() - 1)
                         jsonResult += ",";
                 }
@@ -103,10 +159,10 @@ String RemoteControlServer::executeCommand(const String &moduleName, const Strin
             else if (result.first == "std::vector<uint8_t>")
             {
                 std::vector<uint8_t> *data = static_cast<std::vector<uint8_t> *>(result.second);
-                String jsonResult = "[";
+                std::string jsonResult = "[";
                 for (size_t i = 0; i < data->size(); ++i)
                 {
-                    jsonResult += String((*data)[i]);
+                    jsonResult += std::to_string((*data)[i]);
                     if (i < data->size() - 1)
                         jsonResult += ",";
                 }
@@ -117,7 +173,7 @@ String RemoteControlServer::executeCommand(const String &moduleName, const Strin
             else if (result.first == "int")
             {
                 int *data = static_cast<int *>(result.second);
-                String jsonResult = String(*data);
+                std::string jsonResult = std::to_string(*data);
                 delete data;
                 return "{\"data\":" + jsonResult + "}";
             }
@@ -134,17 +190,6 @@ void setup()
 {
     Serial.begin(115200);
 
-    // Connect to Wi-Fi
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(1000);
-        Serial.println("Connecting to WiFi...");
-    }
-    Serial.println("Connected to WiFi");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
     // Initialize modules
     auto analogModule = std::make_shared<AnalogCtl>();
     auto gpioModule = std::make_shared<GPIOCtl>();
@@ -159,11 +204,14 @@ void setup()
     remoteServer.registerModule("i2s", i2sModule);
     remoteServer.registerModule("spi", spiModule);
 
-    // Set up web server
-    server.on("/execute", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, handleExecute);
-
-    server.begin();
-    Serial.println("HTTP server started");
+    if (!remoteServer.begin())
+    {
+        Serial.println("Failed to start RemoteControlServer");
+        while (1)
+        {
+            delay(1000);
+        } // Infinite loop if setup fails
+    }
 }
 
 void loop()
