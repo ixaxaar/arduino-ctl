@@ -31,15 +31,43 @@
 #include "I2Sctl.h"
 #include "SPIctl.h"
 
+/**
+ * @brief Main control server for Arduino-CTL
+ *
+ * This class manages the remote control server, handling module registration and command execution.
+ */
 class RemoteControlServer
 {
 public:
+    /**
+     * @brief Constructor for RemoteControlServer
+     */
     RemoteControlServer();
+
+    /**
+     * @brief Register a module with the server
+     * @param name Name of the module
+     * @param module Shared pointer to the module
+     */
     void registerModule(const String &name, std::shared_ptr<ModuleInterface> module);
+
+    /**
+     * @brief Execute a set of commands
+     * @param jsonCommands JSON string containing the commands to execute
+     * @return JSON string containing the results of the executed commands
+     */
     String executeCommands(const String &jsonCommands);
 
 private:
-    std::vector<std::pair<String, std::shared_ptr<ModuleInterface>>> modules;
+    std::vector<std::pair<String, std::shared_ptr<ModuleInterface>>> modules; ///< Vector of registered modules
+
+    /**
+     * @brief Execute a single command on a specific module
+     * @param moduleName Name of the module to execute the command on
+     * @param command The command to execute
+     * @param params Vector of parameter name-value pairs for the command
+     * @return JSON string containing the result of the executed command
+     */
     String executeCommand(const String &moduleName, const String &command, const std::vector<std::pair<String, String>> &params);
 };
 

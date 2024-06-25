@@ -20,19 +20,53 @@
 #include <Arduino.h>
 #include <vector>
 
+/**
+ * @brief Struct to hold information about a function
+ *
+ * This struct contains the name of a function and its parameters.
+ */
 struct FunctionInfo
 {
-    String name;
-    std::vector<std::pair<String, String>> params;
+    String name;                                   ///< Name of the function
+    std::vector<std::pair<String, String>> params; ///< Vector of parameter name-type pairs
 };
 
+/**
+ * @brief Interface for Arduino-CTL modules
+ *
+ * This interface defines the common functionality that all Arduino-CTL modules should implement.
+ */
 class ModuleInterface
 {
 public:
-    virtual void init(const std::vector<std::pair<String, String>> &params) = 0;
+    /**
+     * @brief Initialize the module
+     * @param params Vector of parameter name-value pairs for initialization
+     */
+    virtual void init(const std::vector<std::pair<std::string, std::string>> &params) = 0;
+
+    /**
+     * @brief De-initialize the module
+     */
     virtual void deinit() = 0;
-    virtual std::pair<String, void *> execute(const String &command, const std::vector<std::pair<String, String>> &params) = 0;
+
+    /**
+     * @brief Execute a command on the module
+     * @param command The command to execute
+     * @param params Vector of parameter name-value pairs for the command
+     * @return A pair containing the return type as a string and a void pointer to the return value
+     */
+    virtual std::pair<std::string, void *> execute(const std::string &command, const std::vector<std::pair<std::string, std::string>> &params) = 0;
+
+    /**
+     * @brief Get information about the functions supported by this module
+     * @return Vector of FunctionInfo structs describing the supported functions
+     */
     virtual std::vector<FunctionInfo> getSupportedFunctions() = 0;
+
+    /**
+     * @brief Virtual destructor
+     */
     virtual ~ModuleInterface() {}
 };
 
