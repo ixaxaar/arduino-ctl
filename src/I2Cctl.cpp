@@ -16,6 +16,7 @@
 
 #include "I2Cctl.h"
 #include <sstream>
+#include "base64.hpp"
 
 I2CCtl::I2CCtl() : _sdaPin(SDA), _sclPin(SCL), _frequency(100000) {}
 
@@ -77,12 +78,8 @@ std::pair<std::string, void *> I2CCtl::execute(const std::string &command, const
             }
             else if (param.first == "data")
             {
-                std::istringstream iss(param.second);
-                std::string token;
-                while (std::getline(iss, token, ','))
-                {
-                    data.push_back(std::stoul(token));
-                }
+                data.resize(decode_base64_length(reinterpret_cast<const unsigned char *>(param.second.c_str())));
+                decode_base64(reinterpret_cast<const unsigned char *>(param.second.c_str()), param.second.length(), data.data());
             }
         }
         writeToDevice(address, data);

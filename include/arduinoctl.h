@@ -25,6 +25,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <base64.hpp>
 #include "analogctl.h"
 #include "gpioctl.h"
 #include "I2Cctl.h"
@@ -96,6 +97,23 @@ private:
      * Handles loading, saving, and accessing configuration settings such as WiFi credentials and API key.
      */
     ConfigCtl configCtl;
+
+    // Helper function to encode binary data to base64
+    static std::string encodeBase64(const std::vector<uint8_t> &data)
+    {
+        size_t encodedLength = encode_base64_length(data.size());
+        std::string encoded(encodedLength, 0);
+        encode_base64(data.data(), data.size(), reinterpret_cast<unsigned char *>(&encoded[0]));
+        return encoded;
+    }
+
+    // Helper function to decode base64 to binary data
+    static std::vector<uint8_t> decodeBase64(const std::string &encoded)
+    {
+        std::vector<uint8_t> decoded(decode_base64_length(reinterpret_cast<const unsigned char *>(encoded.c_str())));
+        decode_base64(reinterpret_cast<const unsigned char *>(encoded.c_str()), encoded.length(), decoded.data());
+        return decoded;
+    }
 };
 
 /**

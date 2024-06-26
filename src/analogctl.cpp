@@ -16,6 +16,7 @@
 
 #include "analogctl.h"
 #include <sstream>
+#include "base64.hpp"
 
 AnalogCtl::AnalogCtl() : _pin(0), _resolution(10) {}
 
@@ -64,11 +65,14 @@ std::pair<std::string, void *> AnalogCtl::execute(const std::string &command, co
         {
             if (param.first == "values")
             {
-                std::istringstream iss(param.second);
-                std::string token;
-                while (std::getline(iss, token, ','))
+                std::vector<uint8_t> decodedData(decode_base64_length(reinterpret_cast<const unsigned char *>(param.second.c_str())));
+                decode_base64(reinterpret_cast<const unsigned char *>(param.second.c_str()), param.second.length(), decodedData.data());
+                values.reserve(decodedData.size() / sizeof(int));
+                for (size_t i = 0; i < decodedData.size(); i += sizeof(int))
                 {
-                    values.push_back(std::stoi(token));
+                    int value;
+                    memcpy(&value, &decodedData[i], sizeof(int));
+                    values.push_back(value);
                 }
                 break;
             }

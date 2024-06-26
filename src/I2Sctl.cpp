@@ -16,6 +16,7 @@
 
 #include "I2Sctl.h"
 #include <sstream>
+#include "base64.hpp"
 
 I2SCtl::I2SCtl() : _i2sPort(I2S_NUM_0)
 {
@@ -79,12 +80,8 @@ std::pair<std::string, void *> I2SCtl::execute(const std::string &command, const
         {
             if (param.first == "data")
             {
-                std::istringstream iss(param.second);
-                std::string token;
-                while (std::getline(iss, token, ','))
-                {
-                    data.push_back(std::stoul(token));
-                }
+                data.resize(decode_base64_length(reinterpret_cast<const unsigned char *>(param.second.c_str())));
+                decode_base64(reinterpret_cast<const unsigned char *>(param.second.c_str()), param.second.length(), data.data());
                 break;
             }
         }

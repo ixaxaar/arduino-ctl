@@ -142,33 +142,23 @@ std::string RemoteControlServer::executeCommand(const std::string &moduleName, c
         {
             std::pair<std::string, void *> result = module.second->execute(command, params);
 
-            if (result.first == "std::vector<int>")
+            if (result.first == "std::vector<int>" || result.first == "std::vector<uint8_t>")
             {
-                std::vector<int> *data = static_cast<std::vector<int> *>(result.second);
-                std::string jsonResult = "[";
-                for (size_t i = 0; i < data->size(); ++i)
+                std::vector<uint8_t> *data;
+                if (result.first == "std::vector<int>")
                 {
-                    jsonResult += std::to_string((*data)[i]);
-                    if (i < data->size() - 1)
-                        jsonResult += ",";
+                    std::vector<int> *intData = static_cast<std::vector<int> *>(result.second);
+                    data = new std::vector<uint8_t>(reinterpret_cast<uint8_t *>(intData->data()), reinterpret_cast<uint8_t *>(intData->data() + intData->size()));
+                    delete intData;
                 }
-                jsonResult += "]";
-                delete data;
-                return "{\"data\":" + jsonResult + "}";
-            }
-            else if (result.first == "std::vector<uint8_t>")
-            {
-                std::vector<uint8_t> *data = static_cast<std::vector<uint8_t> *>(result.second);
-                std::string jsonResult = "[";
-                for (size_t i = 0; i < data->size(); ++i)
+                else
                 {
-                    jsonResult += std::to_string((*data)[i]);
-                    if (i < data->size() - 1)
-                        jsonResult += ",";
+                    data = static_cast<std::vector<uint8_t> *>(result.second);
                 }
-                jsonResult += "]";
+
+                std::string base64Data = encodeBase64(*data);
                 delete data;
-                return "{\"data\":" + jsonResult + "}";
+                return "{\"data\":\"" + base64Data + "\"}";
             }
             else if (result.first == "int")
             {
